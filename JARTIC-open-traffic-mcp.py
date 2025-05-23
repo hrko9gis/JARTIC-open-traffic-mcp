@@ -1,6 +1,6 @@
 """
 JARTIC Traffic Data MCP Server
-国土交通省交通量データのMCPサーバー
+国土交通省交通量データMCPサーバー
 """
 
 import os
@@ -18,7 +18,6 @@ import mcp.types as types
 
 # JARTIC API設定
 JARTIC_BASE_URL = "https://www.jartic-open-traffic.org/api/v1"
-API_KEY = os.getenv("JARTIC_API_KEY", "")  # 実際のAPIキーが必要
 
 server = Server("JARTIC-TRAFFIC-mcp")
 
@@ -28,8 +27,7 @@ logger = logging.getLogger(__name__)
 class JarticAPIClient:
     """JARTIC API クライアント"""
     
-    def __init__(self, api_key: str = ""):
-        self.api_key = api_key
+    def __init__(self):
         self.base_url = JARTIC_BASE_URL
         
     async def make_request(self, endpoint: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -46,15 +44,11 @@ class JarticAPIClient:
         if params is None:
             params = {}
             
-        # APIキーをヘッダーまたはパラメータに追加
         headers = {
             "User-Agent": "JARTIC-MCP-Client/1.0",
             "Accept": "application/json"
         }
-        
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
-            
+                    
         url = f"{self.base_url}/{endpoint}"
         
         try:
@@ -77,9 +71,6 @@ class JarticAPIClient:
         except Exception as e:
             logger.error(f"Unexpected error: {e}")
             return {"error": f"Unexpected error: {str(e)}"}
-
-# グローバルクライアントインスタンス
-jartic_client = JarticAPIClient(API_KEY)
 
 @server.list_tools()
 async def handle_list_tools() -> list[types.Tool]:

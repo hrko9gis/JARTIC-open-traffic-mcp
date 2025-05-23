@@ -11,10 +11,6 @@
 
 条件を指定して交通量データを検索、取得する
 
-## APIキー
-
-- [交通量データの提供（オープンデータ）](https://www.jartic-open-traffic.org/)を参照
-
 ## Claude Desktop での使用
 
 Claude Desktop でMCPサーバーを追加して利用することができます。

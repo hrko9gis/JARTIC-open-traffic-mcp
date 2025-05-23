@@ -11,6 +11,9 @@
 
 条件を指定してデータを検索、取得する
 
+## APIキー
+
+- [交通量データの提供（オープンデータ）](https://www.jartic-open-traffic.org/)を参照
 
 ## Claude Desktop での使用
 

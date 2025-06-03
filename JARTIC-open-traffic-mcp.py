@@ -2,173 +2,123 @@
 JARTIC Traffic Data MCP Server
 国土交通省交通量データMCPサーバー
 """
-
 import os
 import aiohttp
 import asyncio
 import json
 import logging
-from typing import Optional, Dict, Any, List
+from typing import List, Dict
+
+from mcp.server import Server, NotificationOptions
+from mcp.server.models import InitializationOptions
+from mcp.types import Tool, TextContent
+
 from datetime import datetime, timedelta
 
-from mcp.server.models import InitializationOptions
-from mcp.server import NotificationOptions, Server
-from mcp.types import Resource, Tool, TextContent, ImageContent, EmbeddedResource
-import mcp.types as types
-
-# JARTIC API設定
-JARTIC_BASE_URL = "https://www.jartic-open-traffic.org/api/v1"
-
-server = Server("JARTIC-TRAFFIC-mcp")
-
+server = Server("JARTIC-Traffic-MCP")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class JarticAPIClient:
-    """JARTIC API クライアント"""
-    
-    def __init__(self):
-        self.base_url = JARTIC_BASE_URL
-        
-    async def make_request(self, endpoint: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
-        """
-        API リクエストを実行
-        
-        Args:
-            endpoint: APIエンドポイント
-            params: リクエストパラメータ
-            
-        Returns:
-            APIレスポンスのJSONデータ
-        """
-        if params is None:
-            params = {}
-            
-        headers = {
-            "User-Agent": "JARTIC-MCP-Client/1.0",
-            "Accept": "application/json"
-        }
-                    
-        url = f"{self.base_url}/{endpoint}"
-        
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    url,
-                    headers=headers,
-                    params=params,
-                    timeout=aiohttp.ClientTimeout(total=30)
-                ) as response:
-                    response.raise_for_status()
-                    return await response.json()
-                    
-        except aiohttp.ClientError as e:
-            logger.error(f"HTTP request error: {e}")
-            return {"error": str(e)}
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON decode error: {e}")
-            return {"error": f"JSON decode error: {str(e)}"}
-        except Exception as e:
-            logger.error(f"Unexpected error: {e}")
-            return {"error": f"Unexpected error: {str(e)}"}
+JARTIC_API_URL = "https://api.jartic-open-traffic.org/geoserver"
+DEFAULT_TYPENAME = "t_travospublic_measure_5m"
 
 @server.list_tools()
-async def handle_list_tools() -> list[types.Tool]:
-    """
-    利用可能なツールのリストを返す
-    """
+async def list_tools() -> List[Tool]:
     return [
-        types.Tool(
-            name="get_traffic_flow",
-            description="指定地点・区間の交通量データを取得します",
+        Tool(
+            name="get_traffic_data",
+            description="指定した時間範囲・観測点・範囲から交通量データを取得します",
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "location_id": {"type": "string", "description": "地点ID"},
-                    "road_code": {"type": "string", "description": "道路コード"},
-                    "date": {"type": "string", "description": "取得日付 (YYYY-MM-DD形式)"},
-                    "time_range": {"type": "string", "description": "時間範囲 (hour/day/week/month)"}
-                }
+                    "roadType": {"type": "string", "enum": ["1", "3"]},
+                    "startTime": {"type": "string", "format": "date-time"},
+                    "endTime": {"type": "string", "format": "date-time"},
+                    "bbox": {"type": "string", "description": "BBOX形式 139.15,35.14,139.32,35.56"},
+                    "pointCode": {"type": "string", "description": "常時観測点コード", "nullable": True}
+                },
+                "required": ["roadType", "startTime", "endTime", "bbox"]
             }
         )
     ]
 
 @server.call_tool()
-async def handle_call_tool(name: str, arguments: dict) -> list[types.TextContent]:
-    """
-    ツール呼び出しのハンドラー
-    """
-    logger.info(f"Tool called: {name} with arguments: {arguments}")
-    
-    try:
-        result = ""
-        
-        if name == "get_traffic_flow":
-            result = await get_traffic_flow(**arguments)
-        else:
-            raise ValueError(f"Unknown tool: {name}")
-        
-        # 結果が文字列であることを確認
-        if not isinstance(result, str):
-            logger.warning(f"Result is not string, converting: {type(result)}")
-            result = str(result)
-        
-        logger.info(f"Tool {name} completed successfully")
-        return [types.TextContent(type="text", text=result)]
-    
-    except Exception as e:
-        logger.error(f"Error in tool {name}: {e}", exc_info=True)
-        error_msg = f"Error executing {name}: {str(e)}"
-        return [types.TextContent(type="text", text=error_msg)]
+async def call_tool(name: str, arguments: dict) -> List[TextContent]:
+    if name == "get_traffic_data":
+        result = await get_traffic_data(**arguments)
+        return [TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
+    else:
+        return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
-async def get_traffic_flow(
-    location_id: str = "",
-    road_code: str = "",
-    date: str = "",
-    time_range: str = "hour"
-) -> str:
-    """交通量データを取得"""
-    
-    params = {}
-    if location_id:
-        params["location_id"] = location_id
-    if road_code:
-        params["road_code"] = road_code
-    if date:
-        params["date"] = date
-    if time_range:
-        params["time_range"] = time_range
-    
-    result = await jartic_client.make_request("traffic/flow", params)
-    return json.dumps(result, ensure_ascii=False, indent=2)
+async def get_traffic_data(
+    roadType: str,
+    startTime: str,
+    endTime: str,
+    bbox: str,
+    pointCode: str = None
+) -> Dict:
+    headers = {"Accept": "application/json"}
+    results = []
+
+    try:
+        start = datetime.fromisoformat(startTime)
+        end = datetime.fromisoformat(endTime)
+    except ValueError as e:
+        return {"error": f"Invalid date format: {e}"}
+
+    async with aiohttp.ClientSession() as session:
+        current = start
+        while current <= end:
+            time_code = current.strftime("%Y%m%d%H%M")
+
+            filters = [
+                f"道路種別='{roadType}'",
+                f"時間コード={time_code}",
+                f"BBOX(ジオメトリ,{bbox},'EPSG:4326')"
+            ]
+            if pointCode:
+                filters.append(f"常時観測点コード='{pointCode}'")
+
+            params = {
+                "service": "WFS",
+                "version": "2.0.0",
+                "request": "GetFeature",
+                "typeNames": DEFAULT_TYPENAME,
+                "srsName": "EPSG:4326",
+                "outputFormat": "application/json",
+                "cql_filter": " AND ".join(filters)
+            }
+
+            try:
+                async with session.get(JARTIC_API_URL, params=params, headers=headers) as response:
+                    data = await response.json()
+                    results.extend(data.get("features", []))
+            except Exception as e:
+                logger.error(f"Error fetching {time_code}: {e}")
+
+            current += timedelta(minutes=5)
+
+    return {
+        "type": "FeatureCollection",
+        "features": results
+    }
 
 async def main():
-    """メイン関数"""
-    try:
-        # 方法1: stdio_server を使用
-        from mcp.server.stdio import stdio_server
-        
-        async with stdio_server() as (read_stream, write_stream):
-            await server.run(
-                read_stream, 
-                write_stream, 
-                InitializationOptions(
-                    server_name="JARTIC-TRAFFIC-mcp",
-                    server_version="1.0.0",
-                    capabilities=server.get_capabilities(
-                        notification_options=NotificationOptions(),
-                        experimental_capabilities={}
-                    )
+    import sys
+    from mcp.server.stdio import stdio_server
+    async with stdio_server() as (r, w):
+        await server.run(
+            r, w,
+            InitializationOptions(
+                server_name="JARTIC-Traffic-MCP",
+                server_version="1.0.0",
+                capabilities=server.get_capabilities(
+                    notification_options=NotificationOptions(),
+                    experimental_capabilities={}
                 )
             )
-    except ImportError:
-        # 方法2: 直接的なstdio実装
-        import sys
-        from mcp.server import stdio
-        
-        await server.run_stdio()
+        )
 
 if __name__ == "__main__":
-    # イベントループを直接実行
-    import asyncio
     asyncio.run(main())
+    

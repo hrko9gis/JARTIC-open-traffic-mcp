@@ -32,6 +32,22 @@ Claude Desktop でMCPサーバーを追加して利用することができま�
         }
     }
 }
+
+## Claude Desktop での使用（自分の環境で動作した設定）
+Claude Desktop でMCPサーバーを追加して利用することができます。
+
+1. Claude Desktop で設定画面を開きます
+
+2. このMCPサーバーを追加します
+```json
+{
+    "mcpServers": {
+        "JARTIC-open-traffic-mcp": {
+            "command": "＜JARTIC-open-traffic-mcpのディレクトリを絶対パスで指定＞\\venv\\Scripts\\python.exe",
+            "args": ["＜JARTIC-open-traffic-mcpのディレクトリを絶対パスで指定＞\\JARTIC-open-traffic-mcp.py"]
+        }
+    }
+}
 ```
 
 3. MCPのサーバーURLに http://localhost:3000 を入力します

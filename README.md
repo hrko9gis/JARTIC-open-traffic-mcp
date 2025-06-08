@@ -49,6 +49,10 @@ Claude Desktop でMCPサーバーを追加して利用することができま�
 }
 ```
 
+3. 保存します
+
+4. 接続します
+
 ## Claude Desktop での使用（自分の環境で動作した設定）
 Claude Desktop でMCPサーバーを追加して利用することができます。
 

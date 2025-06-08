@@ -110,7 +110,7 @@ async def main():
         await server.run(
             r, w,
             InitializationOptions(
-                server_name="JARTIC-Traffic-MCP",
+                server_name="JARTIC-open-traffic-mcp",
                 server_version="1.0.0",
                 capabilities=server.get_capabilities(
                     notification_options=NotificationOptions(),

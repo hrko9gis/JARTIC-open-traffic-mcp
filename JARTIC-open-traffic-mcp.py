@@ -34,11 +34,30 @@ async def handle_list_tools() -> List[Tool]:
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "roadType": {"type": "string", "enum": ["1", "3"]},
-                    "startTime": {"type": "string", "format": "date-time"},
-                    "endTime": {"type": "string", "format": "date-time"},
-                    "bbox": {"type": "string", "description": "BBOX形式 139.15,35.14,139.32,35.56"},
-                    "pointCode": {"type": "string", "description": "常時観測点コード", "nullable": True}
+                    "roadType": {
+                        "type": "string",
+                        "enum": ["1", "3"],
+                        "description": "道路種別コード（1: 高速道路, 3: 一般国道）"
+                    },
+                    "startTime": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "開始時刻（ISO8601形式）"
+                    },
+                    "endTime": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "終了時刻（ISO8601形式）"
+                    },
+                    "bbox": {
+                        "type": "string",
+                        "description": "BBOX形式 例: 139.15,35.14,139.32,35.56"
+                    },
+                    "pointCode": {
+                        "type": "string",
+                        "description": "常時観測点コード（省略可能）",
+                        "nullable": True
+                    }
                 },
                 "required": ["roadType", "startTime", "endTime", "bbox"]
             }

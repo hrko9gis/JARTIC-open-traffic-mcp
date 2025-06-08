@@ -17,8 +17,8 @@
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/hrko9gis/MLIT-DATA-PLATFORM-mcp.git
-cd MLIT-DATA-PLATFORM-mcp
+git clone https://github.com/hrko9gis/JARTIC-open-traffic-mcp.git
+cd JARTIC-open-traffic-mcp
 
 # Python仮想環境を使用
 uv venv

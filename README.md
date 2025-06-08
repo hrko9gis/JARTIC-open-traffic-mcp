@@ -11,6 +11,21 @@
 
 条件を指定して交通量データを検索、取得する
 
+## 使い方（自分の環境で動作した手順）
+
+ローカルにクローンして使用する場合：
+
+```bash
+# リポジトリをクローン
+git clone https://github.com/hrko9gis/MLIT-DATA-PLATFORM-mcp.git
+cd MLIT-DATA-PLATFORM-mcp
+
+# Python仮想環境を使用
+uv venv
+.venv\Scripts\activate
+pip install aiohttp mcp
+```
+
 ## Claude Desktop での使用
 
 Claude Desktop でMCPサーバーを追加して利用することができます。

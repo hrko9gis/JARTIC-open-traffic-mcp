@@ -15,7 +15,7 @@ from mcp.types import Tool, TextContent
 
 from datetime import datetime, timedelta
 
-server = Server("JARTIC-Traffic-MCP")
+server = Server("JARTIC-open-traffic-mcp")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 

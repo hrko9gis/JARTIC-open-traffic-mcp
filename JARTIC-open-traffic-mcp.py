@@ -23,7 +23,10 @@ JARTIC_API_URL = "https://api.jartic-open-traffic.org/geoserver"
 DEFAULT_TYPENAME = "t_travospublic_measure_5m"
 
 @server.list_tools()
-async def list_tools() -> List[Tool]:
+async def handle_list_tools() -> List[Tool]:
+    """
+    利用可能なツールのリストを返す
+    """
     return [
         Tool(
             name="get_traffic_data",
@@ -43,12 +46,21 @@ async def list_tools() -> List[Tool]:
     ]
 
 @server.call_tool()
-async def call_tool(name: str, arguments: dict) -> List[TextContent]:
-    if name == "get_traffic_data":
-        result = await get_traffic_data(**arguments)
-        return [TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
-    else:
-        return [TextContent(type="text", text=f"Unknown tool: {name}")]
+async def handle_call_tool(name: str, arguments: dict) -> List[TextContent]:
+    """
+    ツール呼び出しのハンドラー
+    """
+    logger.info(f"Tool called: {name} with arguments: {arguments}")
+
+    try:
+        if name == "get_traffic_data":
+            result = await get_traffic_data(**arguments)
+            return [TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
+        else:
+            raise ValueError(f"Unknown tool: {name}")
+    except Exception as e:
+        logger.error(f"Error in tool {name}: {e}", exc_info=True)
+        return [TextContent(type="text", text=f"Error executing {name}: {str(e)}")]
 
 async def get_traffic_data(
     roadType: str,
@@ -121,4 +133,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-    

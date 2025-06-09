@@ -54,10 +54,22 @@ async def list_tools() -> List[Tool]:
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "roadType": {"type": "string", "enum": ["1", "3"], "description": "道路種別コード（1: 高速道路, 3: 一般国道）"},
-                    "startTime": {"type": "string", "format": "date-time", "description": "開始時刻（ISO8601形式）"},
-                    "endTime": {"type": "string", "format": "date-time", "description": "終了時刻（ISO8601形式）"},
-                    "bbox": {"type": "string", "description": "BBOX形式 例: 139.15,35.14,139.32,35.56"},
+                    "roadType": {
+                        "type": "string",
+                        "enum": ["1", "3"],
+                        "description": "道路種別コード（1: 高速道路, 3: 一般国道）"
+                    },
+                    "startTime": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "開始時刻（ISO8601形式）"
+                    },
+                    "endTime": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "終了時刻（ISO8601形式）"
+                    },
+                    "bbox": {"type": "string"},
                     "centerLat": {"type": "number"},
                     "centerLon": {"type": "number"},
                     "radiusKm": {"type": "number"},
@@ -73,7 +85,7 @@ async def list_tools() -> List[Tool]:
                         "default": "geojson"
                     }
                 },
-                "required": ["roadType", "startTime", "endTime"]
+                "required": ["startTime", "endTime"]
             }
         )
     ]
@@ -90,9 +102,9 @@ async def call_tool(name: str, arguments: dict) -> List[TextContent]:
         return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
 async def get_traffic_data(
-    roadType: str,
-    startTime: str,
-    endTime: str,
+    roadType: str = None,
+    startTime: str = None,
+    endTime: str = None,
     bbox: str = None,
     centerLat: float = None,
     centerLon: float = None,
@@ -121,11 +133,19 @@ async def get_traffic_data(
         while current <= end:
             time_code = current.strftime("%Y%m%d%H%M")
 
-            filters = [
-                f"道路種別='{roadType}'",
+            filters = []
+
+            # 道路種別が未指定の場合は1と3の両方を対象とする
+            if not roadType:
+                filters.append("(道路種別='1' OR 道路種別='3')")
+            else:
+                filters.append(f"道路種別='{roadType}'")
+
+            filters.extend([
+                f"時間コード={time_code}",
                 f"時間コード={time_code}",
                 f"BBOX(ジオメトリ,{final_bbox},'EPSG:4326')"
-            ]
+            ])
 
             if pointCodes:
                 if len(pointCodes) == 1:
